@@ -19,24 +19,40 @@ rankall <- function (outcome, num = "best") {
     data[[outcome]] <- as.numeric(data[[outcome]])
     data <- data[!is.na(data[[outcome]]),columns]
     data <- split(data, data$state)
-    data <- apply(data, function(x, ail='', rating=''){
-        state <- x[1,'state']
+    data <- lapply(data, function(x, ail='', rating=''){
         x <- x[with(x,
                     order(x[[outcome]], x$hospital.name, decreasing=F)),]
         if (is.numeric(num)) {
             if (num > nrow(x)) {
                 name <- 'NA'
+                x <- x[1,]
+                x[1,'hospital.name'] <- NA
             } else {
-                name <- x[num,'hospital.name']
+                x <- x[num,]
             }
         } else if (num == 'best') {
-            name <- x[1,'hospital.name']
+            x <- x[1,]
         } else {
             x <- tail(x,1)
-            name <- x[1,'hospital.name']
         }
-        
-        return(as.data.frame(list(hospital=name, state=state), row.names=state))
+        return(x)
+        #return(as.data.frame(list(hospital=name, state=state), row.names=state))
     }, ail=outcome, rating=num)
-    return(data)
+    #return(data)
+    df <- makeDataFrame(data)
+    return(df)
+}
+
+makeDataFrame <- function(x){
+    states <- names(x)
+    df <- data.frame('hospital'=character(length(states)),
+                     'state'=character(length(states)),
+                     stringsAsFactors=F, row.names=states)
+    for(i in 1:length(states)) {
+        stateFrame <- x[i][[states[i]]]
+        stateFrame <- stateFrame[1,]
+        df[stateFrame$state,'hospital'] <- stateFrame$hospital.name
+        df[stateFrame$state,'state'] <- stateFrame$state
+    }
+    return(df)
 }
